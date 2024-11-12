@@ -1,0 +1,75 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Roblox Server Finder</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 800px; margin: 30px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
+        h1 { text-align: center; }
+        form { display: flex; flex-direction: column; }
+        label { margin-top: 10px; }
+        input[type="text"], input[type="number"], input[type="checkbox"] { margin-top: 5px; padding: 8px; }
+        input[type="submit"] { margin-top: 15px; padding: 10px; background-color: #007bff; color: #fff; border: none; cursor: pointer; }
+        input[type="submit"]:hover { background-color: #0056b3; }
+        .server-list { margin-top: 20px; }
+        .server-item { padding: 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+        .server-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Roblox Server Finder</h1>
+        <form method="post">
+            <label for="placeId">Place ID:</label>
+            <input type="text" id="placeId" name="placeId" value="{{ place_id or '' }}" required>
+            <label for="randomChoice">Random Server:</label>
+            <input type="checkbox" id="randomChoice" name="randomChoice" {% if random_choice %}checked{% endif %}>
+            <label for="maxPing">Maximum Ping (ms):</label>
+            <input type="number" id="maxPing" name="maxPing" value="{{ max_ping or '' }}" placeholder="e.g., 100">
+            <input type="submit" value="Find Servers">
+        </form>
+
+        {% if error %}
+            <p style="color: red;">{{ error }}</p>
+        {% endif %}
+
+        {% if servers %}
+            <h2>Available Servers</h2>
+            <div class="server-list">
+                {% for server in servers %}
+                    <div class="server-item">
+                        <span>Server ID: {{ server.id }} | Ping: {{ server.ping }}ms | Players: {{ server.playing }}/{{ server.maxPlayers }}</span>
+                        <span>
+                            <button onclick="launchRoblox('{{ place_id }}', '{{ server.id }}')">Join</button>
+                            <button onclick="copyInvite('{{ place_id }}', '{{ server.id }}')">Invite</button>
+                        </span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function launchRoblox(placeId, gameInstanceId) {
+            fetch('/launch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ placeId, gameInstanceId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.roblox_url) window.location.href = data.roblox_url;
+                else alert(data.error || 'Failed to launch Roblox');
+            });
+        }
+
+        function copyInvite(placeId, gameInstanceId) {
+            const inviteLink = `${window.location.origin}/invite?placeid=${placeId}&gameinstanceid=${gameInstanceId}`;
+            navigator.clipboard.writeText(inviteLink).then(() => alert("Invite link copied to clipboard!"))
+            .catch(err => alert("Failed to copy invite link."));
+        }
+    </script>
+</body>
+</html>
